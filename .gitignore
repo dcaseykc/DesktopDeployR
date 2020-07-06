@@ -2,3 +2,6 @@ VERSION
 R-Portable/
 library/
 log/
+.Rproj.user
+.Rhistory
+*.Rproj

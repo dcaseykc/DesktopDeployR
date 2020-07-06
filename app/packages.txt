@@ -9,3 +9,9 @@ jsonlite
 
 # if deploying shiny based applications:
 shiny
+data.table
+openxlsx
+drake
+readxl
+xml2
+shinydashboard

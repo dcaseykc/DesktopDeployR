@@ -1,0 +1,6 @@
+variable,value
+base_output,C:/Users/dcasey/Documents/ppe
+cache_folder,C:/Users/dcasey/Documents/ppe_runs
+runtiers,0; 1; 2; 3; 1.5; 1.75
+sized_items,non-latex gloves; scrub pants; scrub pants; latex gloves; N95; coveralls
+do_not_distribute,
