@@ -1,22 +1,16 @@
 # loadd(orders, inv, wt, cache = cache)
 # w = copy(wt)
-assign_and_allocate <- function(orders, inv, w, ltcf_categories, replacement_file = "", donotallocate){
+assign_and_allocate <- function(orders, inv, w, ltcf_categories, replacement_file = ""){
 
   #what tiers are we working with?
   looptiers = sort(unique(orders[,tier]))
   message(paste('Assign/Allocating for tiers:', paste0(looptiers, collapse = ', ')))
   
-  #this will grow an object, which is naughty, but whatever
+  #this will grown an object, which is naughty, but whatever
   holder = list()
-
+  
+  #orders = orders[item_type %in% 'sanitizer, hand- bulk']
   orders = orders[type %in% ltcf_categories, type := 'ltcf']
-  
-  donotallocate = load_spreadsheet(donotallocate)
-  
-  mis_agencies = setdiff(donotallocate[, agency], orders[, agency])
-  if(length(mis_agencies)>0){
-    warning(paste0(paste0(mis_agencies, collapse = ', '), 'are specified in the do not allocate input, but are not found in the orders/requests. This is fine (e.g. old instructions carried forward), but worth double checking'))
-  }
   
   for(ttt in looptiers){
     for(ppp in sort(unique(orders[tier == ttt, priority]), na.last = T)){
@@ -30,12 +24,11 @@ assign_and_allocate <- function(orders, inv, w, ltcf_categories, replacement_fil
                    function(x) assign_ppe(x, valid, w, inv_each))
       
       if(ttt %in% c(1, 1.5)){
-        amethod = 'greedy'
+        alloc = lapply(ass, function(x) allocate_ppe(x, inv, 'greedy'))
        
       }else{
-        amethod = 'spray'
+        alloc = lapply(ass, function(x) allocate_ppe(x, inv, 'spray'))
       }
-      alloc = lapply(ass, function(x) allocate_ppe(x, inv, amethod, dnas = donotallocate))
       
       #draw down the inventory
       inv = drawdown_inv(alloc, inv)
@@ -44,10 +37,9 @@ assign_and_allocate <- function(orders, inv, w, ltcf_categories, replacement_fil
         message('running replacements')
         replacement = load_spreadsheet(replacement_file)
         
-        grps = sort(unique(replacement[, grouping]))
-        for(id in grps){
+        for(id in unique(replacement[, grouping])){
           
-          rrr = replacer(replace = replacement[grouping == id], alloc, inv, names(valid), w, donotallocate)
+          rrr = replacer(replace = replacement[grouping == id], alloc, inv, names(valid), w)
           
           alloc <- rrr[[1]]
           inv <- rrr[[2]]

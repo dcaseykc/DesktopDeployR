@@ -1,4 +1,4 @@
-allocate_ppe = function(ord, inv, method = 'greedy', surplus_weight = .25, dnas){
+allocate_ppe = function(ord, inv, method = 'greedy', surplus_weight = .25){
   ord = copy(ord)
   print(paste0('Allocating: ', unique(ord[, itemz])))
   
@@ -18,9 +18,9 @@ allocate_ppe = function(ord, inv, method = 'greedy', surplus_weight = .25, dnas)
   }
   
   if(method == 'greedy'){
-    return(allocate_ppe_greedy(ord, subinv, dnas))
+    return(allocate_ppe_greedy(ord, subinv))
   }else if (method == 'spray'){
-    return(allocate_ppe_spray(ord, subinv, dnas))
+    return(allocate_ppe_spray(ord, subinv))
   }else{
     return(allocate_ppe_lp(ord, subinv, surplus_weight))
   }
@@ -28,7 +28,7 @@ allocate_ppe = function(ord, inv, method = 'greedy', surplus_weight = .25, dnas)
 
 #Ord: output from the assignment function.
 #inv: inventory on hand
-allocate_ppe_greedy = function(ord, subinv, donotallocate){
+allocate_ppe_greedy = function(ord, subinv){
   
   for(iii in subinv[, Item_long]){
     ord[, (iii) := 0]
@@ -44,8 +44,11 @@ allocate_ppe_greedy = function(ord, subinv, donotallocate){
     tr = which(ord[, ord_id] %in% tr)
     
     subinv[, use_me :=1]
-    if(ord[tr, agency] %in% donotallocate[, agency]){
-      subinv = subinv[id %in% donotallocate[agency %in% ord[tr, agency], Item], use_me := 0]
+    
+    
+
+    if(ord[tr, type] == 'ems' & any(ord$item_type %in% 'coveralls')){
+      subinv = subinv[grepl('tyvek', tolower(Item_long), fixed = T), use_me := 0]
     }
     
     #print(tr)
@@ -73,7 +76,7 @@ allocate_ppe_greedy = function(ord, subinv, donotallocate){
   return(ord)
 }
 
-allocate_ppe_spray = function(ord, subinv, donotallocate){
+allocate_ppe_spray = function(ord, subinv){
   
   for(iii in subinv[, Item_long]){
     ord[, (iii) := 0]
@@ -84,23 +87,22 @@ allocate_ppe_spray = function(ord, subinv, donotallocate){
     
     for(ooo in ord[allocated < assigned, ord_id]){
       
-      subinv[, use_me :=1]
-      if(ord[ord_id %in% ooo, agency] %in% donotallocate[, agency]){
-        subinv = subinv[id %in% donotallocate[agency %in% ord[ord_id %in% ooo, agency], Item], use_me := 0]
-      }
-      
-      if(nrow(subinv[use_me == 1])>0 && sum(subinv[use_me == 1, items_left])==0){
+      if(sum(subinv[, items_left])==0){
         break
       }
       remain = ord[ord_id %in% ooo, assigned - allocated]
-      this = subinv[items_left > 0 & use_me == 1, ][which.min(abs(remain - each_per_su)), item_id]
+      this = subinv[items_left > 0, ][, abs(remain - each_per_su)]
+      
+      #randomly select an item that'll get closest to getting the target
+      this = sample(subinv[items_left > 0, ][abs(remain - each_per_su) == min(this), item_id],size = 1)
+      
       ord[ord_id %in% ooo, allocated := subinv[item_id %in% this, each_per_su] + allocated]
       ord[ord_id %in% ooo, (subinv[item_id %in% this, Item_long]) :=  get(subinv[item_id %in% this, Item_long]) + 1]
       subinv[item_id %in% this, items_left := items_left - 1]
     }
   }
   
-  #make sure we don't accidentally distribute more than we have
+  #make sure we don't acidentally distribute more than we have
   res = melt(ord[, lapply(.SD, sum), .SDcols = subinv[, Item_long]][, id:=.I], id.vars = 'id', variable.factor = FALSE)
   res[, id := NULL]
   res[, item_id := (tstrsplit(variable, split = ':', keep = 1))]
