@@ -8,7 +8,7 @@ add_delivery_info = function(pl, ads){
     
     pos_ads = trimws(unlist(strsplit(ords, split = ',', fixed = T)))
     
-    pos_ads = unique(ads[`wa_num` %in% c(pos_ads), .(agency, `Delivery Address` = address,`Delivery POC` = poc,`Delivery POC Phone number` =  phone, email)])
+    pos_ads = unique(ads[`wa_num` %in% c(pos_ads), .(agency, `Delivery Address` = address, region, `Delivery POC` = poc,`Delivery POC Phone number` =  phone, email)])
     
     if(nrow(pos_ads) != 1){
       
@@ -20,7 +20,7 @@ add_delivery_info = function(pl, ads){
       }
     }
     
-    pl[i, c('Address', 'POC', 'Phone', 'email') := pos_ads[, .(`Delivery Address`,`Delivery POC`,`Delivery POC Phone number`, email)]]
+    pl[i, c('Address','Region', 'POC', 'Phone', 'email') := pos_ads[, .(`Delivery Address`,region,`Delivery POC`,`Delivery POC Phone number`, email)]]
   }
   
   return(pl)

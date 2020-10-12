@@ -5,3 +5,4 @@ log/
 .Rproj.user
 .Rhistory
 *.Rproj
+app/shiny/.drake/

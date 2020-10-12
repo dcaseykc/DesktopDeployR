@@ -66,6 +66,9 @@ prep_inventory = function(fold, date, old, new, version){
   new = merge(new, old[, .(each_per_su, item_type, size, Item, Description)], all.x = T, by = c('Item', 'Description'))
   new[, ship_u := `Qty Avbl`]
   
+  #set items Not For General Distribution to 0
+  new[grepl('NFGD', Description), ship_u := -1]
+  
   write.csv(new, file.path(fold, 'inv', paste0('inventory_',cycle_mo, cycle_day, '_', version,'.csv')), row.names = F, na = "")
   return(file.path(fold, 'inv', paste0('inventory_',cycle_mo, cycle_day, '_', version,'.csv')))
 }

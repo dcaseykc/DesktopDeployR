@@ -20,7 +20,6 @@ create_wide_pl <- function(allocations, ads, standardize_chinook = TRUE){
     
   }
   
-  
   pl = add_delivery_info(allocs, ads)
   
   if(standardize_chinook){

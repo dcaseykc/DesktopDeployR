@@ -14,7 +14,7 @@ find_leftovers <- function(inv, allocations){
   inv[is.na(minus), minus := 0]
   inv[, leftover := ship_u - minus]
   
-  inv = inv[, .(Item, Source, item_type, size, each_per_su, ship_u, minus, leftover)]
+  inv = inv[, .(Source, Item, item_type, size, each_per_su, ship_u, minus, leftover)]
   
   return(inv)
   
