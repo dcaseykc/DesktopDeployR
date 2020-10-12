@@ -3,17 +3,18 @@
 #' 
 #' @param replace a data.table of instructions on how to replace
 #' @param alloc list of allocations to be added to
-#' @param inv data.table of inventory after the allocations of allocs has been draw down
+#' @param inv data.table of inventory after the allocations of allocs has been drawndown
 #' @param validnames character vector of names from the valid data.table
 
-replacer = function(replace, alloc, inv, validnames, w, donotallocate){
+replacer = function(replace, alloc, inv, validnames, w){
   
   stopifnot(length(unique(replace[,grouping]))== 1)
   stopifnot(length(unique(replace[,ratio_old_new]))== 1)
   stopifnot(length(unique(replace[,old_item_type]))== 1)
   stopifnot(length(unique(replace[,old_item_size]))== 1)
   
-  #check the allocations to see if this is necessary, otherwise just return the allocations
+  
+  #check the allocations to see if this is necessary, otherwise just return the alloctions
   allocz = rbindlist(alloc, fill = T)
   
   sub_allocz = allocz[item_type %in% replace[, old_item_type]]
@@ -58,11 +59,11 @@ replacer = function(replace, alloc, inv, validnames, w, donotallocate){
     
     #change the requests based on the ratio
     remain[, requested := requested * unique(replace[, ratio_old_new])]
-    remain[fill_me != 0, fill_me := 1]
+    
     #Assign and allocate the replacements
     rass = lapply(unique(remain[, itemz]), 
                   function(x) assign_ppe(x, remain, w, sub_inv_each))
-    ralloc = lapply(rass, function(x) allocate_ppe(x, sub_inv, 'spray', dnas = donotallocate))
+    ralloc = lapply(rass, function(x) allocate_ppe(x, sub_inv, 'spray'))
     
     ralloc = ralloc[[1]]
     its = unique(inv[Item_long %in% names(ralloc), itemz])
@@ -89,7 +90,6 @@ replacer = function(replace, alloc, inv, validnames, w, donotallocate){
         adder = rbind(alloc[[alloc_id]], adder, fill = T)
       }
       if(nrow(adder)>0){
-        
         #collapse
         col_cols = c('requested', 'assigned', 'allocated', var_names, 'fill_me', 'droppies', 'ord_id', 'ppe_id')
         adder = adder[, lapply(col_cols, function(x){

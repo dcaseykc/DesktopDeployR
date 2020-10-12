@@ -1,1 +1,0 @@
-Wscript "runners\\launch_helper.vbs" "runners\\ppe_app.bat"

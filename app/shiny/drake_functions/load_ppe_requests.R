@@ -12,12 +12,10 @@
 
 load_ppe_requests = function(orders, item_class, tiering, sized_items, ad_only = FALSE){
 
-  ppe = (load_spreadsheet(orders))
-
+  ppe = unique(load_spreadsheet(orders))
   if('POC' %in% names(ppe)) setnames(ppe, 'POC', 'poc')
   items = load_spreadsheet(item_class)
   tiers = load_spreadsheet(tiering)
-
   ppe[, wa_num := trimws(wa_num, whitespace = "[\\h\\v]")]
   tiers[, wa_num := trimws(wa_num, whitespace = "[\\h\\v]")]
   
@@ -29,11 +27,9 @@ load_ppe_requests = function(orders, item_class, tiering, sized_items, ad_only =
   
   setnames(items, 'item', 'item_requested')
   ppe = ppe[!is.na(item_requested)]
+  
   ppe[, item_requested := trimws(item_requested, whitespace = "[\\h\\v]")]
 
-  ppe = ppe[, requested := as.numeric(requested)]
-  ppe = ppe[!is.na(requested),]
-  
   items = unique(items)
   
   item_maps = items[, .N, item_requested]
@@ -70,13 +66,8 @@ load_ppe_requests = function(orders, item_class, tiering, sized_items, ad_only =
   #make the tiers unique
   #tiers[, agency := NULL]
   tiers[!is.na(newname) & newname != "", agency := newname]
-
-  tiers = unique(tiers[, .(wa_num, agency, address, lnum, type, current.tier, priority, region)])
+  tiers = unique(tiers[, .(wa_num, agency, address, lnum, type, current.tier, priority)])
   ppe[, agency := NULL] #changing this up to fix excel drag errors in a lazy way
-  
-  stopifnot('Missing classifications in tier sheet' = all(!is.na(tiers[, agency]) & !tiers[, agency] %in% ''))
-  stopifnot('Missing tiering in tier sheet' = all(!is.na(tiers[, current.tier]) & !tiers[, current.tier] %in% ''))
-  stopifnot('Missing region in tier sheet' = all(!is.na(tiers[, region]) & !tiers[, region] %in% ''))
   
   tiers_by_wa = tiers[, .N, .(wa_num)]
   
@@ -88,17 +79,25 @@ load_ppe_requests = function(orders, item_class, tiering, sized_items, ad_only =
   
   ppe_st = nrow(ppe)
   ppe = merge(ppe, tiers, all.x = T, by = c('wa_num'))
-
+  
   stopifnot('Likely duplicate agencies per wa num in tiers' = (ppe_st) == nrow(ppe))
   
   ppe[, type := tolower(type)]
   
   stopifnot(all(unique(ppe[, .(agency, wa_num)])[, .N, .(agency, wa_num)][, N==1]))
   
+  #for public health agencies, the type of N95s matter
+  #handled via sizing and order filler now
+  #ppe[type %in% 'public health agency' & grepl('N95 SM 1860',  item_requested, fixed = T), size := 'N95 SM 1860']
+  
+  #do something with ltcfs and subtypes here given that a license number is only unique on type + number
+  ppe[type == 'behavioral hospital', type := 'hospital']
+  ppe[type %in% 'acrc', type := 'alternate care facility']
+  
   ppe[, order_ids := paste(unique(wa_num), collapse = ', '), 
       by = .(type, current.tier, agency)]
-
-  ads = unique(ppe[, .(wa_num, agency, poc, phone, address, email, region)])
+  
+  ads = unique(ppe[, .(wa_num, agency, poc, phone, address, email)])
   if(ad_only){
     return(ads)
   }
@@ -113,7 +112,7 @@ load_ppe_requests = function(orders, item_class, tiering, sized_items, ad_only =
   
   ppe[lnum == '9999999', lnum := NA]
   
-  ppe[type %in% c('alternate care facility', 'iq', 'acrc'), type := 'acrc/iq']
+  ppe[type %in% c('alternate care facility', 'iq'), type := 'acrc/iq']
   
   ppe[, ppe_id := .I]
   
@@ -124,6 +123,8 @@ load_ppe_requests = function(orders, item_class, tiering, sized_items, ad_only =
   
   #remove requests for 0 or less items
   ppe = ppe[requested>0]
+  
   return(ppe)
+  
   
 }
